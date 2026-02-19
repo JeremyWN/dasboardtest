@@ -684,8 +684,6 @@ function renderDashboard() {
     </div>
   </div>`;
 
-  document.getElementById('kpi-row').innerHTML = html;
-
   // Middle
   const cmpRows = d.compare.map(r => {
     const c1 = r.greenV1?'color:var(--green)':r.redV1?'color:var(--red)':'color:var(--purple)';
@@ -712,7 +710,7 @@ function renderDashboard() {
     <div><div class="conv-name">${r.name}</div><div class="conv-sub">${r.sub}</div></div>
     <div class="conv-right">
       <div class="conv-cell"><div class="conv-period-label">${d.labelShort}</div><div class="conv-val ${r.g?'cv-green':'cv-current'}">${r.cur}</div></div>
-      <div class="conv-cell"><div class="conv-period-label">${prevLabel!=='—'?allData[prevKey].labelShort:'—'}</div><div class="conv-val cv-prev">${r.prev}</div></div>
+      <div class="conv-cell"><div class="conv-period-label">${prevKey ? allData[prevKey].labelShort : '—'}</div><div class="conv-val cv-prev">${r.prev}</div></div>
     </div>
   </div>`).join('');
 
@@ -751,11 +749,6 @@ function renderDashboard() {
       </div>
     </div>
   </div>`;
-
-  document.getElementById('middle-row').innerHTML = `
-    <div class="card animated"><div class="card-label">Porównanie miesięcy</div><div class="compare-chart">${cmpRows}</div></div>
-    <div class="card animated"><div class="card-label">Wyniki konwersji</div>${convRows}</div>
-    ${extraCol}`;
 
   // Campaigns
   let campHTML = `<div class="card-label" style="margin-bottom:14px;">Zestawienie kampanii</div>`;
@@ -809,14 +802,8 @@ function renderDashboard() {
   }
 
   document.getElementById('main-content').innerHTML = `
-    <div class="kpi-grid" id="kpi-row">${html}</div>
-    <div class="middle-grid" id="middle-row">${document.getElementById('middle-row')?.innerHTML||''}</div>
-    <div class="card" id="campaigns-card">${campHTML}</div>`;
-
-  // Re-render middle (already set above but need to use ids)
-  document.getElementById('main-content').innerHTML = `
     <div class="kpi-grid">${html}</div>
-    <div class="middle-grid" style="grid-template-columns:1fr 1fr 1fr;display:grid;gap:14px;margin-bottom:14px;">
+    <div class="middle-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
       <div class="card animated"><div class="card-label">Porównanie miesięcy</div><div class="compare-chart">${cmpRows}</div></div>
       <div class="card animated"><div class="card-label">Wyniki konwersji</div>${convRows}</div>
       ${extraCol}
