@@ -365,47 +365,34 @@ const COL_MAP = {
 let allData = {};
 let activeMonth = null;
 
-function csvUrl(sheetId, gid) {
-  return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+function gvizUrl(sheetId, gid) {
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=${gid}`;
 }
 
-async function fetchCSV(url) {
+async function fetchSheet(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.text();
+  const text = await res.text();
+  // Google zwraca JSONP — wycinamy callback i parsujemy samo JSON
+  const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
+  return parseGviz(json);
 }
 
-function parseCSV(text) {
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-  if (lines.length < 2) return [];
-  
-  // Parse header — handle quoted fields
-  const headers = parseCSVRow(lines[0]);
-  const rows = [];
-  
-  for (let i = 1; i < lines.length; i++) {
-    const vals = parseCSVRow(lines[i]);
-    const row = {};
-    headers.forEach((h, idx) => {
-      row[h.trim()] = (vals[idx] || '').trim();
-    });
-    rows.push(row);
-  }
-  return rows;
-}
-
-function parseCSVRow(line) {
-  const result = [];
-  let current = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') { inQuotes = !inQuotes; }
-    else if (ch === ',' && !inQuotes) { result.push(current); current = ''; }
-    else { current += ch; }
-  }
-  result.push(current);
-  return result;
+function parseGviz(json) {
+  const table = json.table;
+  if (!table || !table.cols || !table.rows) return [];
+  const headers = table.cols.map(c => (c.label || c.id || '').trim());
+  return table.rows
+    .filter(r => r && r.c)
+    .map(r => {
+      const row = {};
+      headers.forEach((h, i) => {
+        const cell = r.c[i];
+        row[h] = cell ? (cell.v !== null && cell.v !== undefined ? String(cell.v) : '') : '';
+      });
+      return row;
+    })
+    .filter(row => Object.values(row).some(v => v !== ''));
 }
 
 function getVal(row, key) {
@@ -599,9 +586,8 @@ async function loadAllSheets() {
   try {
     allData = {};
     for (const sheet of SHEETS) {
-      const url = csvUrl(sheet.sheetId, sheet.gid);
-      const csv = await fetchCSV(url);
-      const rows = parseCSV(csv);
+      const url = gvizUrl(sheet.sheetId, sheet.gid);
+      const rows = await fetchSheet(url);
       if (rows.length === 0) throw new Error(`Arkusz "${sheet.label}" jest pusty lub ma błędną strukturę.`);
       allData[sheet.label] = processSheetData(rows, sheet);
     }
