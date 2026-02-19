@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raport Meta Ads</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F0F2FA; --card: #FFFFFF;
+    --purple: #6C5CE7; --purple-light: #A29BFE; --purple-dark: #4834D4; --purple-xlight: #EAE8FD;
+    --blue: #4F80FF; --green: #00C896; --red: #FF5E7E;
+    --text: #1A1D2E; --text2: #6B7280; --border: #E8EAF6;
+    --shadow: 0 2px 16px rgba(108,92,231,0.08);
+  }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* TOPBAR */
+  .topbar {
+    background: var(--card); height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 10px; }
+  .logo-mark {
+    width: 32px; height: 32px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--purple), var(--blue));
+    border-radius: 9px; display: flex; align-items: center; justify-content: center;
+  }
+  .logo-mark svg { width: 16px; height: 16px; }
+  .logo-text { font-size: 15px; font-weight: 700; }
+  .logo-text span { color: var(--purple); }
+  .breadcrumb {
+    display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2);
+    margin-left: 20px; padding-left: 20px; border-left: 1px solid var(--border);
+  }
+  .breadcrumb .current { color: var(--purple); font-weight: 600; }
+  .budget-badge {
+    background: linear-gradient(135deg, var(--purple), var(--blue));
+    color: #fff; font-size: 12px; font-weight: 600;
+    padding: 5px 13px; border-radius: 20px; white-space: nowrap;
+  }
+  .refresh-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--purple-xlight); color: var(--purple);
+    border: none; border-radius: 20px; padding: 5px 13px;
+    font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
+    transition: background 0.2s;
+  }
+  .refresh-btn:hover { background: #D8D4FB; }
+  .refresh-btn.spinning svg { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* MONTH TABS */
+  .month-tabs-wrap {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 0 32px; display: flex; align-items: center;
+    overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .month-tabs-wrap::-webkit-scrollbar { display: none; }
+  .month-tab {
+    padding: 13px 20px; font-size: 13px; font-weight: 500; color: var(--text2);
+    cursor: pointer; border-bottom: 2px solid transparent;
+    white-space: nowrap; transition: all 0.2s; user-select: none; flex-shrink: 0;
+  }
+  .month-tab:hover { color: var(--purple); }
+  .month-tab.active { color: var(--purple); font-weight: 700; border-bottom-color: var(--purple); }
+
+  /* CONTENT */
+  .content { padding: 24px 32px 56px; }
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+  .page-title { font-size: 20px; font-weight: 800; }
+  .page-title span { color: var(--purple); }
+  .legend {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--card); padding: 7px 14px;
+    border-radius: 10px; border: 1px solid var(--border);
+  }
+  .leg-item { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; color: var(--text2); }
+  .leg-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+  /* LOADING STATE */
+  .loading-wrap {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 80px 20px; gap: 16px;
+  }
+  .loader {
+    width: 40px; height: 40px; border: 3px solid var(--purple-xlight);
+    border-top-color: var(--purple); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .loading-text { font-size: 14px; color: var(--text2); font-weight: 500; }
+
+  /* ERROR STATE */
+  .error-wrap {
+    background: #FFF0F4; border: 1px solid #FFD6E0; border-radius: 12px;
+    padding: 20px 24px; margin-bottom: 20px; display: none;
+  }
+  .error-wrap.show { display: block; }
+  .error-title { font-size: 13px; font-weight: 700; color: var(--red); margin-bottom: 4px; }
+  .error-msg { font-size: 12px; color: #9B4057; }
+
+  /* GRIDS */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4,1fr) 1.2fr; gap: 14px; margin-bottom: 14px; }
+  .middle-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+
+  /* CARD */
+  .card {
+    background: var(--card); border-radius: 16px; padding: 18px;
+    border: 1px solid var(--border); box-shadow: var(--shadow);
+    position: relative; overflow: hidden;
+  }
+  .card-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.8px;
+    text-transform: uppercase; color: var(--text2); margin-bottom: 8px;
+  }
+  .card-icon {
+    position: absolute; top: 16px; right: 16px;
+    width: 34px; height: 34px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+  }
+  .icon-purple { background: var(--purple-xlight); }
+  .icon-green  { background: #E8FDF5; }
+  .icon-blue   { background: #EFF3FF; }
+
+  /* KPI */
+  .kpi-main { font-size: 26px; font-weight: 800; line-height: 1; }
+  .kpi-main sup { font-size: 12px; font-weight: 600; color: var(--text2); vertical-align: super; }
+  .kpi-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; flex-wrap: wrap; gap: 4px; }
+  .kpi-prev { font-size: 10px; color: var(--text2); }
+  .badge { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 7px; font-size: 10px; font-weight: 700; }
+  .badge-up      { background: #E8FDF5; color: var(--green); }
+  .badge-down    { background: #FFF0F4; color: var(--red); }
+  .badge-neutral { background: var(--purple-xlight); color: var(--purple); }
+
+  /* SPARKLINE */
+  .sparkline-wrap { margin-top: 10px; }
+  .spark-bar-row { display: flex; align-items: flex-end; gap: 2px; height: 24px; }
+  .spark-bar { border-radius: 2px 2px 0 0; flex: 1; }
+
+  /* HERO */
+  .card-gradient {
+    background: linear-gradient(135deg, var(--purple-dark) 0%, var(--purple) 50%, var(--blue) 100%);
+    border: none;
+  }
+  .card-gradient .card-label { color: rgba(255,255,255,0.6); }
+  .card-gradient::before {
+    content: ''; position: absolute; top: -30px; right: -30px;
+    width: 110px; height: 110px; background: rgba(255,255,255,0.06); border-radius: 50%;
+  }
+
+  /* COMPARE */
+  .compare-chart { display: flex; flex-direction: column; gap: 13px; margin-top: 4px; }
+  .cmp-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .cmp-name { font-size: 12px; font-weight: 500; }
+  .cmp-vals { display: flex; gap: 10px; }
+  .cmp-v1 { font-size: 12px; font-weight: 700; color: var(--purple); }
+  .cmp-v2 { font-size: 12px; color: var(--text2); }
+  .cmp-tracks { display: flex; flex-direction: column; gap: 3px; }
+  .cmp-track { height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+  .cmp-fill-a { height: 100%; background: linear-gradient(90deg, var(--purple), var(--purple-light)); border-radius: 3px; }
+  .cmp-fill-b { height: 100%; background: #D5D8EA; border-radius: 3px; }
+
+  /* CONV */
+  .conv-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .conv-row:last-child { border-bottom: none; }
+  .conv-name { font-size: 12px; font-weight: 500; }
+  .conv-sub  { font-size: 10px; color: var(--text2); margin-top: 1px; }
+  .conv-right { display: flex; gap: 14px; }
+  .conv-cell { text-align: right; }
+  .conv-period-label { font-size: 9px; letter-spacing: 0.7px; text-transform: uppercase; color: var(--text2); }
+  .conv-val { font-size: 15px; font-weight: 800; }
+  .cv-current { color: var(--purple); }
+  .cv-prev    { color: #C0C4D6; }
+  .cv-green   { color: var(--green); }
+
+  /* STATUS */
+  .status-boxes { display: flex; gap: 10px; margin-top: 8px; }
+  .status-box { text-align: center; flex: 1; border-radius: 10px; padding: 11px 4px; }
+
+  /* CAMPAIGNS TABLE */
+  .camp-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.ct { width: 100%; border-collapse: collapse; min-width: 680px; }
+  table.ct thead tr { border-bottom: 1.5px solid var(--border); }
+  table.ct th { font-size: 10px; font-weight: 600; letter-spacing: 0.7px; text-transform: uppercase; color: var(--text2); padding: 9px 11px; text-align: left; white-space: nowrap; }
+  table.ct td { padding: 12px 11px; font-size: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  table.ct tr:last-child td { border-bottom: none; }
+  table.ct tr:hover td { background: #F7F8FF; }
+  .ct-name { font-weight: 600; font-size: 12px; }
+  .ct-sub  { font-size: 10px; color: var(--text2); margin-top: 2px; }
+  .status-off { display: inline-block; background: #FFF4E5; color: #F59E0B; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; }
+  .status-on  { display: inline-block; background: #E8FDF5; color: var(--green); font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; }
+  .ct-num  { font-weight: 700; }
+  .ct-good { color: var(--green); font-weight: 700; }
+  .ct-avg  { color: var(--text2); }
+  .roas-wrap { display: flex; align-items: center; gap: 7px; }
+  .roas-pill { height: 5px; width: 44px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+  .roas-fill { height: 100%; background: linear-gradient(90deg, var(--purple), var(--purple-light)); border-radius: 3px; }
+
+  /* CAMP CARDS (mobile) */
+  .camp-cards { display: none; flex-direction: column; gap: 12px; }
+  .camp-card { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: var(--bg); }
+  .camp-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .camp-card-name { font-size: 13px; font-weight: 700; }
+  .camp-card-date { font-size: 10px; color: var(--text2); margin-top: 2px; }
+  .camp-card-metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .camp-metric { background: var(--card); border-radius: 8px; padding: 8px 10px; }
+  .camp-metric-label { font-size: 9px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text2); margin-bottom: 3px; }
+  .camp-metric-val { font-size: 13px; font-weight: 800; }
+  .camp-metric-val.good { color: var(--green); }
+
+  /* FOOTER */
+  .report-footer { margin-top: 24px; padding: 14px 0 0; border-top: 1px solid var(--border); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+  .report-footer p { font-size: 11px; color: var(--text2); }
+
+  /* ANIMATE */
+  @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  .animated { animation: fadeUp 0.3s ease both; }
+
+  /* TABLET */
+  @media (max-width: 1100px) {
+    .kpi-grid { grid-template-columns: repeat(3,1fr); }
+    .kpi-hero-wrap { grid-column: span 3; }
+    .middle-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* MOBILE */
+  @media (max-width: 640px) {
+    .topbar { padding: 0 16px; height: 52px; }
+    .breadcrumb { display: none; }
+    .budget-badge { font-size: 11px; padding: 4px 10px; }
+    .month-tabs-wrap { padding: 0 8px; }
+    .month-tab { padding: 11px 14px; font-size: 12px; }
+    .content { padding: 16px 16px 48px; }
+    .page-header { flex-direction: column; align-items: flex-start; }
+    .page-title { font-size: 18px; }
+    .legend { width: 100%; }
+    .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .kpi-hero-wrap { grid-column: span 2; }
+    .kpi-main { font-size: 22px; }
+    .card { padding: 14px; border-radius: 12px; }
+    .card-icon { width: 30px; height: 30px; font-size: 13px; top: 12px; right: 12px; }
+    .middle-grid { grid-template-columns: 1fr; }
+    .extra-col { display: grid !important; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .extra-col > .card { flex: none !important; }
+    .extra-col > .card:last-child { grid-column: span 2; }
+    .camp-table-wrap { display: none; }
+    .camp-cards { display: flex; }
+    .camp-card-metrics { grid-template-columns: 1fr 1fr; }
+    .report-footer { flex-direction: column; }
+  }
+
+  @media (max-width: 380px) {
+    .kpi-main { font-size: 20px; }
+    .extra-col { grid-template-columns: 1fr !important; }
+    .extra-col > .card:last-child { grid-column: span 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+    </div>
+    <div class="logo-text">Meta<span>Ads</span></div>
+    <div class="breadcrumb">
+      <span>Raporty</span><span>›</span>
+      <span class="current" id="breadcrumb-month"></span>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button class="refresh-btn" onclick="loadAllSheets()" id="refresh-btn">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+      Odśwież
+    </button>
+    <div class="budget-badge" id="topbar-budget">💸 —</div>
+  </div>
+</div>
+
+<div class="month-tabs-wrap" id="month-tabs"></div>
+
+<div class="content">
+  <div class="page-header">
+    <div class="page-title">Raport <span id="title-month"></span></div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--purple)"></div><span id="leg-current"></span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:#D5D8EA"></div><span id="leg-prev"></span></div>
+    </div>
+  </div>
+
+  <div id="error-wrap" class="error-wrap">
+    <div class="error-title">❌ Nie można pobrać danych</div>
+    <div class="error-msg" id="error-msg"></div>
+  </div>
+
+  <div id="main-content">
+    <div class="loading-wrap">
+      <div class="loader"></div>
+      <div class="loading-text">Pobieranie danych z Google Sheets…</div>
+    </div>
+  </div>
+
+  <div class="report-footer">
+    <p>📊 Raport · Meta Ads Manager</p>
+    <p id="footer-text"></p>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// KONFIGURACJA — wklej tutaj ID każdego arkusza
+// ID to część URL między /d/ a /edit
+// Możesz dodawać kolejne miesiące dokładając kolejne obiekty
+// ============================================================
+const SHEETS = [
+  {
+    label: "Grudzień 2025",
+    labelShort: "Gru '25",
+    sheetId: "1Jv1WPtkOGHpjW_ma-L7W1tIxTQudEF4eXdVvsnzJfyg",
+    gid: "0"   // numer zakładki (0 = pierwsza)
+  },
+  // Jak będziesz miał dane za Styczeń — dodaj tu:
+  // {
+  //   label: "Styczeń 2026",
+  //   labelShort: "Sty '26",
+  //   sheetId: "WKLEJ_ID_ARKUSZA",
+  //   gid: "0"
+  // },
+];
+
+// ============================================================
+// MAPOWANIE KOLUMN
+// Klucz = nazwa kolumny w arkuszu (dokładnie jak w nagłówku)
+// Wartość = zmienna wewnętrzna
+// Dostosuj jeśli nazwy kolumn w Twoim arkuszu są inne
+// ============================================================
+const COL_MAP = {
+  // Podstawowe metryki
+  "Nazwa kampanii":                "campaign_name",
+  "Wyświetlenia w kampanii":       "campaign_impressions",
+  "Wydana kwota (PLN)":            "spend",
+  "Zasięg":                        "reach",
+  "Wyświetlenia":                  "impressions",
+  "Unikalne kliknięcia linku":     "clicks",
+  "Unikatowy CTR (współczynnik kliknięć linku)": "ctr",
+  "CPC (koszt kliknięcia linku) (PLN)":          "cpc",
+  "Wyświetlenia strony docelowej w witrynie":    "landing_views",
+  "Koszt wyświetlenia strony docelowej (PLN)":   "landing_cost",
+  "Dodanie do koszyka":            "cart_adds",
+  "Koszt dodania do koszyka (PLN)":"cart_cost",
+  "Zakupy":                        "purchases",
+  "Wartość konwersji - zakupy":    "conv_value",
+  "Koszt zakupu (PLN)":            "cost_per_purchase",
+  "Zwrot z wydatków na reklamę (ROAS)": "roas",
+  "Obserwatorzy na Instagramie":   "ig_followers",
+  "Częstotliwość":                 "frequency",
+  "Koszt dotarcia do 1000 kont w Centrum kont (PLN)": "cpm",
+};
+
+// ============================================================
+let allData = {};
+let activeMonth = null;
+
+function csvUrl(sheetId, gid) {
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+}
+
+async function fetchCSV(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.text();
+}
+
+function parseCSV(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+  if (lines.length < 2) return [];
+  
+  // Parse header — handle quoted fields
+  const headers = parseCSVRow(lines[0]);
+  const rows = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const vals = parseCSVRow(lines[i]);
+    const row = {};
+    headers.forEach((h, idx) => {
+      row[h.trim()] = (vals[idx] || '').trim();
+    });
+    rows.push(row);
+  }
+  return rows;
+}
+
+function parseCSVRow(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQuotes = !inQuotes; }
+    else if (ch === ',' && !inQuotes) { result.push(current); current = ''; }
+    else { current += ch; }
+  }
+  result.push(current);
+  return result;
+}
+
+function getVal(row, key) {
+  // Szuka po mapowaniu lub bezpośrednio po kluczu
+  for (const [colName, mapKey] of Object.entries(COL_MAP)) {
+    if (mapKey === key && row[colName] !== undefined) {
+      return row[colName] || '—';
+    }
+  }
+  // Fallback — szukaj zawierającego klucza
+  for (const [colName, val] of Object.entries(row)) {
+    if (colName.toLowerCase().includes(key.toLowerCase())) return val || '—';
+  }
+  return '—';
+}
+
+function fmt(val) {
+  if (!val || val === '—') return '—';
+  // Zamień kropkę na przecinek dla PLN
+  const num = parseFloat(val.replace(',', '.'));
+  if (isNaN(num)) return val;
+  return num.toLocaleString('pl-PL', { maximumFractionDigits: 2 });
+}
+
+function fmtPct(val) {
+  if (!val || val === '—') return '—';
+  const num = parseFloat(val.replace(',', '.'));
+  if (isNaN(num)) return val;
+  return num.toFixed(2).replace('.', ',') + '%';
+}
+
+function calcChange(current, previous) {
+  if (!current || !previous || current === '—' || previous === '—') return { text: '—', dir: 'neutral' };
+  const c = parseFloat(current.replace(',', '.'));
+  const p = parseFloat(previous.replace(',', '.'));
+  if (isNaN(c) || isNaN(p) || p === 0) return { text: '—', dir: 'neutral' };
+  const pct = ((c - p) / p * 100);
+  const sign = pct >= 0 ? '▲' : '▼';
+  const dir = pct >= 0 ? 'up' : 'down';
+  return { text: `${sign} ${Math.abs(pct).toFixed(0)}%`, dir };
+}
+
+function processSheetData(rows, sheet) {
+  // Agreguj dane — suma po wszystkich kampaniach
+  const totals = {};
+  const campaigns = [];
+
+  rows.forEach(row => {
+    const campName = getVal(row, 'campaign_name');
+    if (!campName || campName === '—') return;
+
+    // Kampanie
+    campaigns.push({
+      name: campName,
+      date: '',
+      status: 'inactive',
+      spend:        fmt(getVal(row, 'spend')) + ' zł',
+      reach:        fmt(getVal(row, 'reach')),
+      impressions:  fmt(getVal(row, 'impressions')),
+      clicks:       fmt(getVal(row, 'clicks')),
+      ctr:          fmtPct(getVal(row, 'ctr')),
+      ctrGood:      parseFloat((getVal(row, 'ctr') || '0').replace(',', '.')) > 5,
+      cpc:          fmt(getVal(row, 'cpc')) + ' zł',
+      landingViews: fmt(getVal(row, 'landing_views')),
+      roas:         fmt(getVal(row, 'roas')),
+      roasPct:      Math.min(100, parseFloat((getVal(row, 'roas') || '0').replace(',', '.')) * 20),
+    });
+
+    // Sumuj metryki
+    ['spend','reach','impressions','clicks','landing_views','cart_adds','purchases','conv_value','ig_followers'].forEach(k => {
+      const v = parseFloat((getVal(row, k) || '0').replace(',', '.').replace(/\s/g, ''));
+      totals[k] = (totals[k] || 0) + (isNaN(v) ? 0 : v);
+    });
+
+    // Średnie
+    ['ctr','cpc','roas'].forEach(k => {
+      const v = parseFloat((getVal(row, k) || '0').replace(',', '.'));
+      if (!totals[`_cnt_${k}`]) totals[`_cnt_${k}`] = 0;
+      if (!totals[`_sum_${k}`]) totals[`_sum_${k}`] = 0;
+      if (!isNaN(v) && v > 0) { totals[`_sum_${k}`] += v; totals[`_cnt_${k}`]++; }
+    });
+  });
+
+  // Wylicz średnie
+  const avgCtr  = totals['_cnt_ctr']  > 0 ? (totals['_sum_ctr']  / totals['_cnt_ctr']).toFixed(2)  : 0;
+  const avgCpc  = totals['_cnt_cpc']  > 0 ? (totals['_sum_cpc']  / totals['_cnt_cpc']).toFixed(2)  : 0;
+  const avgRoas = totals['_cnt_roas'] > 0 ? (totals['_sum_roas'] / totals['_cnt_roas']).toFixed(2) : 0;
+
+  const spendFmt = totals.spend ? totals.spend.toFixed(2).replace('.', ',') : '—';
+
+  return {
+    label: sheet.label,
+    labelShort: sheet.labelShort,
+    budget: spendFmt,
+    reach: fmt(String(Math.round(totals.reach || 0))),
+    campaignsCount: campaigns.length,
+    kpi: {
+      impressions:  { val: fmt(String(Math.round(totals.impressions||0))), unit: '', prevLabel: '', change: null, dir: 'neutral' },
+      clicks:       { val: fmt(String(Math.round(totals.clicks||0))),      unit: '', prevLabel: '', change: null, dir: 'neutral' },
+      ctr:          { val: avgCtr.replace('.', ','),     unit: '%',  prevLabel: '', change: null, dir: 'neutral' },
+      cpc:          { val: avgCpc.replace('.', ','),     unit: 'zł', prevLabel: '', change: null, dir: 'neutral' },
+      landingViews: { val: fmt(String(Math.round(totals.landing_views||0))), unit: '', prevLabel: '', change: null, dir: 'neutral' },
+      cartAdds:     { val: fmt(String(Math.round(totals.cart_adds||0))),     unit: '', prevLabel: '', change: null, dir: 'neutral' },
+      purchases:    { val: fmt(String(Math.round(totals.purchases||0))),     unit: '', prevLabel: '', change: null, dir: 'neutral' },
+      roas:         { val: avgRoas.replace('.', ','),    unit: '',   prevLabel: '', change: null, dir: 'neutral' },
+    },
+    conversions: {
+      purchases:    { current: fmt(String(Math.round(totals.purchases||0))),  prev: '—' },
+      convValue:    { current: fmt(String((totals.conv_value||0).toFixed(2))) + ' zł', prev: '—' },
+      costPerPurch: { current: totals.purchases > 0 ? fmt(String((totals.spend/totals.purchases).toFixed(2))) + ' zł' : '—', prev: '—' },
+      roas:         { current: avgRoas.replace('.', ','), prev: '—' },
+      cartAdds:     { current: fmt(String(Math.round(totals.cart_adds||0))), prev: '—', currentGreen: (totals.cart_adds||0) > 0 },
+    },
+    compare: [
+      { name: 'Wyświetlenia',  v1: fmt(String(Math.round(totals.impressions||0))),    v2: '—', pct1: 100, pct2: 0 },
+      { name: 'Kliknięcia',    v1: fmt(String(Math.round(totals.clicks||0))),         v2: '—', pct1: 100, pct2: 0 },
+      { name: 'Wyśw. strony',  v1: fmt(String(Math.round(totals.landing_views||0))), v2: '—', pct1: 100, pct2: 0 },
+      { name: 'Do koszyka',    v1: fmt(String(Math.round(totals.cart_adds||0))),      v2: '—', pct1: 100, pct2: 0 },
+      { name: 'Zakupy',        v1: fmt(String(Math.round(totals.purchases||0))),      v2: '—', pct1: 100, pct2: 0 },
+    ],
+    instagram: { current: fmt(String(Math.round(totals.ig_followers||0))), prev: '—' },
+    statusBoxes: { total: campaigns.length, inactive: campaigns.length, active: 0 },
+    campaigns,
+    raw_totals: totals,
+  };
+}
+
+function addComparisonData() {
+  const keys = Object.keys(allData);
+  keys.forEach((key, idx) => {
+    if (idx === 0) return;
+    const curr = allData[key];
+    const prev = allData[keys[idx - 1]];
+    curr.kpi.impressions.prevLabel  = `poprz. ${prev.kpi.impressions.val}`;
+    curr.kpi.clicks.prevLabel       = `poprz. ${prev.kpi.clicks.val}`;
+    curr.kpi.ctr.prevLabel          = `poprz. ${prev.kpi.ctr.val}%`;
+    curr.kpi.cpc.prevLabel          = `poprz. ${prev.kpi.cpc.val} zł`;
+    curr.kpi.landingViews.prevLabel = `poprz. ${prev.kpi.landingViews.val}`;
+    curr.kpi.cartAdds.prevLabel     = `poprz. ${prev.kpi.cartAdds.val}`;
+    curr.kpi.purchases.prevLabel    = `poprz. ${prev.kpi.purchases.val}`;
+    curr.kpi.roas.prevLabel         = `poprz. ${prev.kpi.roas.val}`;
+
+    // Zmiany
+    const chg = (c, p) => calcChange(c.replace(/\s/g,''), p.replace(/\s/g,''));
+    curr.kpi.impressions.change  = chg(curr.kpi.impressions.val,  prev.kpi.impressions.val).text;
+    curr.kpi.impressions.dir     = chg(curr.kpi.impressions.val,  prev.kpi.impressions.val).dir;
+    curr.kpi.clicks.change       = chg(curr.kpi.clicks.val,       prev.kpi.clicks.val).text;
+    curr.kpi.clicks.dir          = chg(curr.kpi.clicks.val,       prev.kpi.clicks.val).dir;
+    curr.kpi.ctr.change          = chg(curr.kpi.ctr.val,          prev.kpi.ctr.val).text;
+    curr.kpi.ctr.dir             = chg(curr.kpi.ctr.val,          prev.kpi.ctr.val).dir;
+    curr.kpi.landingViews.change = chg(curr.kpi.landingViews.val, prev.kpi.landingViews.val).text;
+    curr.kpi.landingViews.dir    = chg(curr.kpi.landingViews.val, prev.kpi.landingViews.val).dir;
+    curr.kpi.cartAdds.change     = chg(curr.kpi.cartAdds.val,     prev.kpi.cartAdds.val).text;
+    curr.kpi.cartAdds.dir        = chg(curr.kpi.cartAdds.val,     prev.kpi.cartAdds.val).dir;
+    curr.kpi.purchases.change    = chg(curr.kpi.purchases.val,    prev.kpi.purchases.val).text;
+    curr.kpi.purchases.dir       = chg(curr.kpi.purchases.val,    prev.kpi.purchases.val).dir;
+
+    // Porównanie w wykresie słupkowym
+    const imp_max = Math.max(parseFloat(curr.kpi.impressions.val.replace(/\s/g,'')||0), parseFloat(prev.kpi.impressions.val.replace(/\s/g,'')||0));
+    const clk_max = Math.max(parseFloat(curr.kpi.clicks.val.replace(/\s/g,'')||0),      parseFloat(prev.kpi.clicks.val.replace(/\s/g,'')||0));
+    const lv_max  = Math.max(parseFloat(curr.kpi.landingViews.val.replace(/\s/g,'')||0),parseFloat(prev.kpi.landingViews.val.replace(/\s/g,'')||0));
+    const ca_max  = Math.max(parseFloat(curr.kpi.cartAdds.val||0), parseFloat(prev.kpi.cartAdds.val||0));
+    const pu_max  = Math.max(parseFloat(curr.kpi.purchases.val||0),parseFloat(prev.kpi.purchases.val||0));
+
+    curr.compare = [
+      { name:'Wyświetlenia', v1:curr.kpi.impressions.val, v2:prev.kpi.impressions.val, pct1:imp_max?Math.round(parseFloat(curr.kpi.impressions.val.replace(/\s/g,''))/imp_max*100):0, pct2:100 },
+      { name:'Kliknięcia',   v1:curr.kpi.clicks.val,      v2:prev.kpi.clicks.val,      pct1:clk_max?Math.round(parseFloat(curr.kpi.clicks.val.replace(/\s/g,''))/clk_max*100):0, pct2:100 },
+      { name:'Wyśw. strony', v1:curr.kpi.landingViews.val,v2:prev.kpi.landingViews.val,pct1:lv_max?Math.round(parseFloat(curr.kpi.landingViews.val.replace(/\s/g,''))/lv_max*100):0, pct2:100 },
+      { name:'Do koszyka',   v1:curr.kpi.cartAdds.val,    v2:prev.kpi.cartAdds.val,    pct1:ca_max?Math.round(parseFloat(curr.kpi.cartAdds.val)/ca_max*100):0, pct2:100, greenV1:parseFloat(curr.kpi.cartAdds.val)>parseFloat(prev.kpi.cartAdds.val) },
+      { name:'Zakupy',       v1:curr.kpi.purchases.val,   v2:prev.kpi.purchases.val,   pct1:pu_max?Math.round(parseFloat(curr.kpi.purchases.val)/pu_max*100):0, pct2:100 },
+    ];
+    curr.conversions.purchases.prev    = prev.conversions.purchases.current;
+    curr.conversions.convValue.prev    = prev.conversions.convValue.current;
+    curr.conversions.costPerPurch.prev = prev.conversions.costPerPurch.current;
+    curr.conversions.roas.prev         = prev.conversions.roas.current;
+    curr.conversions.cartAdds.prev     = prev.conversions.cartAdds.current;
+    curr.instagram.prev                = prev.instagram.current;
+  });
+}
+
+async function loadAllSheets() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  document.getElementById('error-wrap').classList.remove('show');
+  document.getElementById('main-content').innerHTML = `
+    <div class="loading-wrap">
+      <div class="loader"></div>
+      <div class="loading-text">Pobieranie danych z Google Sheets…</div>
+    </div>`;
+
+  try {
+    allData = {};
+    for (const sheet of SHEETS) {
+      const url = csvUrl(sheet.sheetId, sheet.gid);
+      const csv = await fetchCSV(url);
+      const rows = parseCSV(csv);
+      if (rows.length === 0) throw new Error(`Arkusz "${sheet.label}" jest pusty lub ma błędną strukturę.`);
+      allData[sheet.label] = processSheetData(rows, sheet);
+    }
+    addComparisonData();
+
+    const keys = Object.keys(allData);
+    if (!activeMonth || !allData[activeMonth]) activeMonth = keys[keys.length - 1];
+
+    renderTabs();
+    renderDashboard();
+  } catch (err) {
+    document.getElementById('error-msg').textContent = err.message + ' — Sprawdź czy arkusz jest publiczny (Przeglądający).';
+    document.getElementById('error-wrap').classList.add('show');
+    document.getElementById('main-content').innerHTML = `
+      <div class="loading-wrap">
+        <div style="font-size:36px;">📋</div>
+        <div class="loading-text">Nie można pobrać danych. Sprawdź ustawienia arkusza.</div>
+      </div>`;
+  } finally {
+    btn.classList.remove('spinning');
+  }
+}
+
+// ── RENDER ──
+function bc(dir) { return dir==='up'?'badge-up':dir==='down'?'badge-down':'badge-neutral'; }
+
+function renderTabs() {
+  document.getElementById('month-tabs').innerHTML = Object.keys(allData).map(key => {
+    return `<div class="month-tab ${key===activeMonth?'active':''}" onclick="switchMonth('${key}')">${key}</div>`;
+  }).join('');
+}
+
+function switchMonth(key) {
+  activeMonth = key;
+  renderTabs();
+  renderDashboard();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderDashboard() {
+  const d = allData[activeMonth];
+  const keys = Object.keys(allData);
+  const prevKey = keys[keys.indexOf(activeMonth) - 1];
+  const prevLabel = prevKey || '—';
+
+  document.getElementById('breadcrumb-month').textContent = d.label;
+  document.getElementById('topbar-budget').textContent = `💸 ${d.budget} zł`;
+  document.getElementById('title-month').textContent = d.label;
+  document.getElementById('leg-current').textContent = d.labelShort;
+  document.getElementById('leg-prev').textContent = prevKey ? allData[prevKey].labelShort : '—';
+  document.getElementById('footer-text').innerHTML = `${d.label} · Budżet: <strong>${d.budget} zł</strong>`;
+
+  const kpiDefs = [
+    { key:'impressions', label:'Wyświetlenia', icon:'👁️', ic:'icon-purple', sc:['#EAE8FD','#EAE8FD','#EAE8FD','#A29BFE','#A29BFE','#6C5CE7','#6C5CE7'] },
+    { key:'clicks',      label:'Kliknięcia',  icon:'🖱️', ic:'icon-blue',   sc:['#EFF3FF','#EFF3FF','#EFF3FF','#93AAFF','#93AAFF','#4F80FF','#4F80FF'] },
+    { key:'ctr',         label:'CTR',         icon:'📈',  ic:'icon-green',  sc:['#E8FDF5','#E8FDF5','#E8FDF5','#4FDFAD','#4FDFAD','#00C896','#00C896'] },
+    { key:'cpc',         label:'Śr. CPC',     icon:'💰',  ic:'icon-purple', sc:['#EAE8FD','#EAE8FD','#EAE8FD','#A29BFE','#A29BFE','#6C5CE7','#6C5CE7'] },
+  ];
+  const sh = [40,55,45,70,65,90,100];
+
+  let html = kpiDefs.map((def,i) => {
+    const k = d.kpi[def.key];
+    const spark = sh.map((h,j) => `<div class="spark-bar" style="height:${h}%;background:${def.sc[j]};"></div>`).join('');
+    return `<div class="card animated" style="animation-delay:${i*0.06}s">
+      <div class="card-label">${def.label}</div>
+      <div class="card-icon ${def.ic}">${def.icon}</div>
+      <div class="kpi-main">${k.val}${k.unit?`<sup>${k.unit}</sup>`:''}</div>
+      <div class="sparkline-wrap"><div class="spark-bar-row">${spark}</div></div>
+      <div class="kpi-footer">
+        <span class="kpi-prev">${k.prevLabel||''}</span>
+        ${k.change?`<span class="badge ${bc(k.dir)}">${k.change}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  html += `<div class="card card-gradient animated kpi-hero-wrap" style="animation-delay:0.24s">
+    <div class="card-label" style="color:rgba(255,255,255,0.6);">Łączny Budżet</div>
+    <div class="kpi-main" style="font-size:30px;color:#fff;">${d.budget}<sup style="color:rgba(255,255,255,0.7);">zł</sup></div>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.15);">
+      <div style="display:flex;gap:24px;margin-bottom:12px;">
+        <div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px;">Zasięg</div>
+          <div style="font-size:17px;font-weight:800;color:#fff;">${d.reach}</div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px;">Kampanie</div>
+          <div style="font-size:17px;font-weight:800;color:#fff;">${d.campaignsCount}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <span class="badge" style="background:rgba(255,255,255,0.2);color:#fff;">Meta Ads</span>
+        <span class="badge" style="background:rgba(255,255,255,0.2);color:#fff;">${d.labelShort}</span>
+      </div>
+    </div>
+  </div>`;
+
+  document.getElementById('kpi-row').innerHTML = html;
+
+  // Middle
+  const cmpRows = d.compare.map(r => {
+    const c1 = r.greenV1?'color:var(--green)':r.redV1?'color:var(--red)':'color:var(--purple)';
+    const f1 = r.greenV1?'background:linear-gradient(90deg,var(--green),#4FDFAD);':r.redV1?'background:var(--red);':'';
+    return `<div style="margin-bottom:0;">
+      <div class="cmp-header"><span class="cmp-name">${r.name}</span>
+        <div class="cmp-vals"><span class="cmp-v1" style="${c1}">${r.v1}</span><span class="cmp-v2">${r.v2}</span></div>
+      </div>
+      <div class="cmp-tracks">
+        <div class="cmp-track"><div class="cmp-fill-a" style="width:${r.pct1}%;${f1}"></div></div>
+        <div class="cmp-track"><div class="cmp-fill-b" style="width:${r.pct2}%"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const cv = d.conversions;
+  const convRows = [
+    { name:'Zakupy',             sub:'Transakcje',      cur:cv.purchases.current,    prev:cv.purchases.prev,    g:cv.purchases.currentGreen },
+    { name:'Wartość konwersji',  sub:'Przychód',        cur:cv.convValue.current,    prev:cv.convValue.prev,    g:cv.convValue.currentGreen },
+    { name:'Koszt zakupu',       sub:'Koszt pozysk.',   cur:cv.costPerPurch.current, prev:cv.costPerPurch.prev, g:false },
+    { name:'ROAS',               sub:'Zwrot z inwest.', cur:cv.roas.current,         prev:cv.roas.prev,         g:false },
+    { name:'Do koszyka',         sub:'Zainteresowanie', cur:cv.cartAdds.current,     prev:cv.cartAdds.prev,     g:cv.cartAdds.currentGreen },
+  ].map(r => `<div class="conv-row">
+    <div><div class="conv-name">${r.name}</div><div class="conv-sub">${r.sub}</div></div>
+    <div class="conv-right">
+      <div class="conv-cell"><div class="conv-period-label">${d.labelShort}</div><div class="conv-val ${r.g?'cv-green':'cv-current'}">${r.cur}</div></div>
+      <div class="conv-cell"><div class="conv-period-label">${prevLabel!=='—'?allData[prevKey].labelShort:'—'}</div><div class="conv-val cv-prev">${r.prev}</div></div>
+    </div>
+  </div>`).join('');
+
+  const sb = d.statusBoxes;
+  const extraCol = `<div style="display:flex;flex-direction:column;gap:14px;" class="extra-col">
+    <div class="card">
+      <div class="card-label">Wyśw. strony</div>
+      <div class="card-icon icon-blue">🔗</div>
+      <div class="kpi-main">${d.kpi.landingViews.val}</div>
+      <div class="kpi-footer">
+        <span class="kpi-prev">${d.kpi.landingViews.prevLabel||''}</span>
+        ${d.kpi.landingViews.change?`<span class="badge ${bc(d.kpi.landingViews.dir)}">${d.kpi.landingViews.change}</span>`:''}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">Obserwatorzy IG</div>
+      <div class="card-icon" style="background:#FFF0F6;">📸</div>
+      <div class="kpi-main" style="color:#E91E8C;">${d.instagram.current}</div>
+      <div class="kpi-footer"><span class="kpi-prev">poprz. ${d.instagram.prev}</span></div>
+    </div>
+    <div class="card" style="flex:1;">
+      <div class="card-label">Status kampanii</div>
+      <div class="status-boxes">
+        <div class="status-box" style="background:var(--purple-xlight);">
+          <div style="font-size:18px;font-weight:800;color:var(--purple);">${sb.total}</div>
+          <div style="font-size:9px;color:var(--text2);margin-top:2px;">Łącznie</div>
+        </div>
+        <div class="status-box" style="background:#FFF4E5;">
+          <div style="font-size:18px;font-weight:800;color:#F59E0B;">${sb.inactive}</div>
+          <div style="font-size:9px;color:var(--text2);margin-top:2px;">Nieaktywne</div>
+        </div>
+        <div class="status-box" style="background:#E8FDF5;">
+          <div style="font-size:18px;font-weight:800;color:var(--green);">${sb.active}</div>
+          <div style="font-size:9px;color:var(--text2);margin-top:2px;">Aktywne</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  document.getElementById('middle-row').innerHTML = `
+    <div class="card animated"><div class="card-label">Porównanie miesięcy</div><div class="compare-chart">${cmpRows}</div></div>
+    <div class="card animated"><div class="card-label">Wyniki konwersji</div>${convRows}</div>
+    ${extraCol}`;
+
+  // Campaigns
+  let campHTML = `<div class="card-label" style="margin-bottom:14px;">Zestawienie kampanii</div>`;
+
+  if (!d.campaigns || d.campaigns.length === 0) {
+    campHTML += `<div style="text-align:center;padding:40px;color:var(--text2);">
+      <div style="font-size:32px;margin-bottom:12px;">📭</div>
+      <div style="font-size:14px;font-weight:600;">Brak danych kampanii</div>
+    </div>`;
+  } else {
+    const tRows = d.campaigns.map(c => `<tr>
+      <td><div class="ct-name">${c.name}</div></td>
+      <td><span class="${c.status==='active'?'status-on':'status-off'}">${c.status==='active'?'Aktywna':'Nieaktywna'}</span></td>
+      <td><span class="ct-num">${c.spend}</span></td>
+      <td><span class="ct-num">${c.reach}</span></td>
+      <td><span class="ct-num">${c.impressions}</span></td>
+      <td><span class="ct-num">${c.clicks}</span></td>
+      <td><span class="${c.ctrGood?'ct-good':'ct-avg'}">${c.ctr}</span></td>
+      <td><span class="ct-num">${c.cpc}</span></td>
+      <td><span class="ct-num">${c.landingViews}</span></td>
+      <td><div class="roas-wrap"><div class="roas-pill"><div class="roas-fill" style="width:${c.roasPct}%"></div></div><span class="ct-num">${c.roas}</span></div></td>
+    </tr>`).join('');
+
+    campHTML += `<div class="camp-table-wrap"><table class="ct">
+      <thead><tr>
+        <th>Kampania</th><th>Status</th><th>Wydatki</th><th>Zasięg</th>
+        <th>Wyśw.</th><th>Kliknięcia</th><th>CTR</th><th>CPC</th>
+        <th>Wyśw. strony</th><th>ROAS</th>
+      </tr></thead>
+      <tbody>${tRows}</tbody>
+    </table></div>`;
+
+    const mCards = d.campaigns.map(c => `
+      <div class="camp-card">
+        <div class="camp-card-header">
+          <div><div class="camp-card-name">${c.name}</div></div>
+          <span class="${c.status==='active'?'status-on':'status-off'}">${c.status==='active'?'Aktywna':'Nieaktywna'}</span>
+        </div>
+        <div class="camp-card-metrics">
+          <div class="camp-metric"><div class="camp-metric-label">Wydatki</div><div class="camp-metric-val">${c.spend}</div></div>
+          <div class="camp-metric"><div class="camp-metric-label">Zasięg</div><div class="camp-metric-val">${c.reach}</div></div>
+          <div class="camp-metric"><div class="camp-metric-label">Wyśw.</div><div class="camp-metric-val">${c.impressions}</div></div>
+          <div class="camp-metric"><div class="camp-metric-label">Kliknięcia</div><div class="camp-metric-val">${c.clicks}</div></div>
+          <div class="camp-metric"><div class="camp-metric-label">CTR</div><div class="camp-metric-val ${c.ctrGood?'good':''}">${c.ctr}</div></div>
+          <div class="camp-metric"><div class="camp-metric-label">CPC</div><div class="camp-metric-val">${c.cpc}</div></div>
+          <div class="camp-metric"><div class="camp-metric-label">Wyśw. strony</div><div class="camp-metric-val">${c.landingViews}</div></div>
+          <div class="camp-metric"><div class="camp-metric-label">ROAS</div><div class="camp-metric-val">${c.roas}</div></div>
+        </div>
+      </div>`).join('');
+    campHTML += `<div class="camp-cards">${mCards}</div>`;
+  }
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="kpi-grid" id="kpi-row">${html}</div>
+    <div class="middle-grid" id="middle-row">${document.getElementById('middle-row')?.innerHTML||''}</div>
+    <div class="card" id="campaigns-card">${campHTML}</div>`;
+
+  // Re-render middle (already set above but need to use ids)
+  document.getElementById('main-content').innerHTML = `
+    <div class="kpi-grid">${html}</div>
+    <div class="middle-grid" style="grid-template-columns:1fr 1fr 1fr;display:grid;gap:14px;margin-bottom:14px;">
+      <div class="card animated"><div class="card-label">Porównanie miesięcy</div><div class="compare-chart">${cmpRows}</div></div>
+      <div class="card animated"><div class="card-label">Wyniki konwersji</div>${convRows}</div>
+      ${extraCol}
+    </div>
+    <div class="card">${campHTML}</div>`;
+}
+
+// START
+loadAllSheets();
+</script>
+</body>
+</html>
